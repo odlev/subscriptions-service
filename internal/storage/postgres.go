@@ -7,9 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
-
-	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/odlev/subscriptions/internal/config"
 	"github.com/odlev/subscriptions/pkg/myerrors"

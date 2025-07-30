@@ -73,7 +73,7 @@ func CreateSubscription(log *slog.Logger, dataWizard DataWizard) gin.HandlerFunc
 // @Description Возвращает подписку в формате, готовом для API (с преобразованными датами в необходимый формат)
 // @Tags subscriptions
 // @Produce json
-// @Param id path string true "ID подписки" format(uuid) example(550e8400-e29b-41d4-a716-446655440000)
+// @Param id path string true "ID подписки" format(uuid) example(c9fd9538-e38c-429c-981b-f3ed34aee585)
 // @Success 200 {object} storage.SubscriptionR "Успешно получено"
 // @Failure 400 {object} map[string]any "Неверный UUID" example({"error": "failed to parse UUID"})
 // @Failure 404 {object} map[string]any "Подписка не найдена" example({"subscription": "not found"})
@@ -161,7 +161,7 @@ func DeleteSubscription(log *slog.Logger, dataWizard DataWizard) gin.HandlerFunc
 
 //UpdateSubscription godoc
 // @Summary Обновить подписку
-// @Description Обновляет любые поля записи о подписке ID и User_ID
+// @Description Обновляет любые поля записи о подписке ID и User_ID, сохраняет время последнего обновления в поле updated_at базы данных
 // @Tags subscriptions
 // @Accept json
 // @Produce json

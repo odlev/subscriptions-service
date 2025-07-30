@@ -30,6 +30,7 @@ func main() {
 	db, err := storage.InitPostgres(log, *cfg)
 	if err != nil {
 		log.Error("error initialization database", sl.Err(err))
+		return
 	}
 
 	router := gin.Default()

@@ -114,7 +114,7 @@ paths:
         датами в необходимый формат)
       parameters:
       - description: ID подписки
-        example: 550e8400-e29b-41d4-a716-446655440000
+        example: c9fd9538-e38c-429c-981b-f3ed34aee585
         format: uuid
         in: path
         name: id
@@ -223,7 +223,8 @@ paths:
     patch:
       consumes:
       - application/json
-      description: Обновляет любые поля записи о подписке ID и User_ID
+      description: Обновляет любые поля записи о подписке ID и User_ID, сохраняет
+        время последнего обновления в поле updated_at базы данных
       parameters:
       - description: ID подписки
         example: 550e8400-e29b-41d4-a716-446655440000
