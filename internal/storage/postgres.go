@@ -12,29 +12,13 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/odlev/subscriptions/internal/config"
-	"github.com/odlev/subscriptions/internal/myerrors"
+	"github.com/odlev/subscriptions/pkg/myerrors"
 )
 
+const DateLayout = "2006-01"
 
 type Storage struct {
 	db *pgxpool.Pool
-}
-
-type Subscription struct {
-	ID          uuid.UUID `json:"id,omitempty"`
-	ServiceName string    `json:"service_name" binding:"required"`
-	Price       int       `json:"price" binding:"required,min=1"`
-	UserID      uuid.UUID `json:"user_id,omitempty"`
-	StartDate   time.Time `json:"start_date" binding:"required"`
-	EndDate     time.Time `json:"end_date,omitempty"`
-	//Description *string
-}
-
-type UpdateSubscription struct {
-	ServiceName string `json:"service_name,omitempty"`
-	Price int `json:"price,omitempty"`
-	StartDate time.Time `json:"start_date,omitempty"`
-	EndDate time.Time `json:"end_date,omitempty"`
 }
 
 func InitPostgres(log *slog.Logger, cfg config.Config) (*Storage, error) {
@@ -70,12 +54,26 @@ func InitPostgres(log *slog.Logger, cfg config.Config) (*Storage, error) {
 	return &Storage{db: db}, nil
 }
 
-func (s *Storage) NewSubscription(sub *Subscription) (uuid.UUID, error) {
+func (s *Storage) CreateSubscription(sub *SubscriptionR) (uuid.UUID, error) {
 	const op = "storage.postgres.NewSubscription"
 
-	if sub.EndDate.IsZero() {
-		sub.EndDate = sub.StartDate.AddDate(1, 0, 0)
+	var endDate time.Time 
+	startDate, err := time.Parse(DateLayout, sub.StartDate)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("%s: time parse error: %w", op, err)
 	}
+	if sub.EndDate == "" {
+		endDate = startDate.AddDate(1, 0, 0)
+	} else {
+		endDate, err = time.Parse(DateLayout, sub.EndDate)
+		if err != nil {
+			return uuid.Nil, fmt.Errorf("%s: time parse error: %w", op, err)
+		}
+	}
+	if endDate.Before(startDate) {
+		return uuid.Nil, fmt.Errorf("%s: %w", op, myerrors.ErrInvalidDateRange)
+	}
+
 	var id uuid.UUID
 	// если не передан user_id - не передаем его в бд и бд создает его по дефолту
 	if sub.UserID == uuid.Nil { 
@@ -83,7 +81,7 @@ func (s *Storage) NewSubscription(sub *Subscription) (uuid.UUID, error) {
 		(service_name, price, start_date, end_date)
 		values ($1, $2, $3, $4) RETURNING id`
 
-		err := s.db.QueryRow(context.Background(), query, sub.ServiceName, sub.Price, sub.StartDate, sub.EndDate).Scan(&id)
+		err := s.db.QueryRow(context.Background(), query, sub.ServiceName, sub.Price, startDate, endDate).Scan(&id)
 		if err != nil {
 			return uuid.Nil, fmt.Errorf("%s: %w", op, err)
 		}
@@ -92,39 +90,13 @@ func (s *Storage) NewSubscription(sub *Subscription) (uuid.UUID, error) {
 		(service_name, price, user_id, start_date, end_date)
 		values ($1, $2, $3, $4, $5) RETURNING id`
 
-		err := s.db.QueryRow(context.Background(), query, sub.ServiceName, sub.Price, sub.UserID, sub.StartDate, sub.EndDate).Scan(&id)
+		err := s.db.QueryRow(context.Background(), query, sub.ServiceName, sub.Price, sub.UserID, startDate, endDate).Scan(&id)
 		if err != nil {
 			return uuid.Nil, fmt.Errorf("%s: %w", op, err)
 		}
 	}
-
-	if err := sub.Validate(); err != nil {
-		return uuid.Nil, fmt.Errorf("%s: invalid subscription: %w", op, err)
-	}
-	//slog.Info("user_id received", slog.Any("user_id", sub.UserID))
 	
 	return id, nil
-}
-
-func (s *Subscription) Validate() error {
-	realStartTime := time.Time(s.StartDate)
-	//realEndTime := time.Time(s.EndDate)
-
-	if s.ServiceName == "" {
-		return errors.New("service_name is required")
-	}
-	// пусть и такой сценарий проверяется в бд
-	if s.Price <= 0 {
-		return errors.New("price must be positive")
-	}
-	if realStartTime.IsZero() {
-		return errors.New("start_date is required")
-	}
-	/* if realStartTime.After(realEndTime) {
-		return errors.New("start_date must be before end_date")
-	} */
-
-	return nil
 }
 
 //GetSubscription позволяет получить все поля таблицы для одного uuid
@@ -174,11 +146,112 @@ func (s *Storage) DeleteSubscription(id uuid.UUID) (string, error) {
 	return serviceName, nil
 }
 
-func (s *Storage) UpdateSubscription(id uuid.UUID, req UpdateSubscription) error {
+func (s *Storage) UpdateSubscription(id uuid.UUID, req UpdateSubscriptionRequest) error {
 	const op = "storage.postgres.UpdateSubscription"
 
+	startDate, endDate, err := parseDates(req)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+	
 	query := `UPDATE subscriptions SET 
-	`	
-	_ = query
+		service_name = COALESCE($1, service_name),
+		price = COALESCE($2, price),
+		start_date = COALESCE($3, start_date),
+		end_date = COALESCE($4, end_date),
+		updated_at = NOW()
+	WHERE id = $5;`	
+	
+	_, err = s.db.Exec(context.Background(), query, req.ServiceName, req.Price, startDate, endDate, id)
+	if err != nil {
+		return fmt.Errorf("%s: %w", op, err)
+	}
+
 	return nil
+}
+
+func parseDates(req UpdateSubscriptionRequest) (*time.Time, *time.Time, error) {
+    const op = "storage.postgres.parseDates"
+
+    var startDate, endDate *time.Time
+
+    if req.StartDate != "" {
+        parsed, err := time.Parse(DateLayout, req.StartDate)
+        if err != nil {
+            return nil, nil, fmt.Errorf("%s: invalid start date: %w", op, err)
+        }
+        startDate = &parsed
+    }
+
+    if req.EndDate != "" {
+        parsed, err := time.Parse(DateLayout, req.EndDate)
+        if err != nil {
+            return nil, nil, fmt.Errorf("%s: invalid end date: %w", op, err)
+        }
+        endDate = &parsed
+    } else if req.StartDate != "" && req.EndDate == "" {
+        // Если EndDate не указан, но есть StartDate - ставим +1 год
+        parsed := startDate.AddDate(1, 0, 0)
+        endDate = &parsed
+    }
+
+	if startDate != nil && endDate != nil && endDate.Before(*startDate) {
+		return nil, nil, fmt.Errorf("%s: %w", op, myerrors.ErrInvalidDateRange)
+	}
+
+    return startDate, endDate, nil
+}
+
+func (s *Storage) GetListSubscriptions(userID, name string) ([]Subscription, error) {
+	const op = "storage.postgres.GetAllSubscriptions"
+
+	query := `SELECT id, service_name, price, user_id, start_date, end_date
+	FROM subscriptions WHERE 1 = 1`
+
+	args := []any{}
+
+	if userID != "" {
+		if _, err := uuid.Parse(userID); err != nil {
+			return nil, fmt.Errorf("%s: failed parse id: %w", op, err)
+		}
+		args = append(args, userID)
+		query = query + fmt.Sprintf(" AND user_id = $%d", len(args))
+
+	}
+	if name != "" {
+		args = append(args, name)
+		query = query + fmt.Sprintf(" AND service_name = $%d", len(args))
+	}
+
+	rows, err := s.db.Query(context.Background(), query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", op, err)
+	}
+
+	defer rows.Close()
+
+	var subs []Subscription
+	
+	var sub Subscription
+	for rows.Next() {
+		if err := rows.Scan(&sub.ID, &sub.ServiceName, &sub.Price, &sub.UserID, &sub.StartDate, &sub.EndDate); err != nil {
+			return nil, fmt.Errorf("%s: %w", op, err)
+		}
+
+		subs = append(subs, Subscription{
+			ID: sub.ID,
+			ServiceName: sub.ServiceName,
+			Price: sub.Price,
+			UserID: sub.UserID,
+			StartDate: sub.StartDate,
+			EndDate: sub.EndDate,
+		})
+	}
+
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("%s: rows iteration error: %w", op, err)
+	}
+
+	return subs, nil
+
 }

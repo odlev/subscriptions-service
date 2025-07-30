@@ -6,14 +6,21 @@ import (
 	"os"
 
 	"github.com/gin-gonic/gin"
+	_ "github.com/odlev/subscriptions/docs"
 	"github.com/odlev/subscriptions/internal/config"
 	"github.com/odlev/subscriptions/internal/handlers"
-	"github.com/odlev/subscriptions/internal/sl"
 	"github.com/odlev/subscriptions/internal/storage"
+	"github.com/odlev/subscriptions/pkg/sl"
+	ginSwagger "github.com/swaggo/gin-swagger"
+	"github.com/swaggo/files" 
 )
 
-const TimeLayout = "2006-01-02"
-
+// @title           Subscription service API
+// @version         1.0
+// @description     Api for managing subscriptions
+// @host            localhost:8080
+// @BasePath        /
+// @schemes http
 func main() {
 
 	cfg := config.MustLoad()
@@ -27,25 +34,26 @@ func main() {
 
 	router := gin.Default()
 
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
+
 	router.POST("/new", handlers.CreateSubscription(log, db))
 	router.GET("/get/:id", handlers.GetSubscription(log, db))
 	router.DELETE("/delete/:id", handlers.DeleteSubscription(log, db))
+	router.PATCH("/update/:id", handlers.UpdateSubscription(log, db))
+	router.GET("/list", handlers.GetListSubscriptions(log, db))
 
 	srv := &http.Server{
-		Addr: cfg.Address,
-		Handler: router,
-		ReadTimeout: cfg.Timeout,
+		Addr:         cfg.Address,
+		Handler:      router,
+		ReadTimeout:  cfg.Timeout,
 		WriteTimeout: cfg.Timeout,
-		IdleTimeout: cfg.IdleTimeout,
+		IdleTimeout:  cfg.IdleTimeout,
 	}
 
 	if err := srv.ListenAndServe(); err != nil {
 		log.Error("failed to start server", "err", err)
 	}
-	// TODO: init routes
 
-	// TODO: run server
-		
 }
 
 func newLogger(environment string) *slog.Logger {

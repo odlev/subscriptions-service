@@ -1,0 +1,366 @@
+{
+    "schemes": [
+        "http"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Api for managing subscriptions",
+        "title": "Subscription service API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "host": "localhost:8080",
+    "basePath": "/",
+    "paths": {
+        "/delete/{id}": {
+            "delete": {
+                "description": "Удаляет подписку по ID и возвращает название удаленного сервиса",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Удалить подписку",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000",
+                        "description": "ID подписки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешное удаление\" example({\"status\":\"Success\",\"deleted service\":\"Netflix\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный ID\" example({\"error\":\"failed to parse id\",\"details\":\"invalid UUID format\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Подписка не найдена\" example({\"error\":\"subscription not found\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера\" example({\"error\":\"internal server error\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/get/{id}": {
+            "get": {
+                "description": "Возвращает подписку в формате, готовом для API (с преобразованными датами в необходимый формат)",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Получить подписку по ID",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000",
+                        "description": "ID подписки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешно получено",
+                        "schema": {
+                            "$ref": "#/definitions/storage.SubscriptionR"
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный UUID\" example({\"error\": \"failed to parse UUID\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Подписка не найдена\" example({\"subscription\": \"not found\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера\" example({\"error\": \"failed to get subscription, internal error\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/list": {
+            "get": {
+                "description": "Возвращает список подписок с возможностью фильтрации по user_id и названию сервиса. Если подписки не найдены, возвращает \"not found\".",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Получить список подписок",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000",
+                        "description": "ID пользователя для фильтрации",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "Netflix",
+                        "description": "Название сервиса для фильтрации",
+                        "name": "service_name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Если подписок нет\" example({\"subscriptions\": \"not found\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный user_id\" example({\"error\": \"invalid user_id\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера\" example({\"error\": \"internal server error\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/new": {
+            "post": {
+                "description": "Добавляет новую подписку для пользователя. Поля user_id и end_date опциональны, если не указать user_id - сгенерируется автоматически, если не указать end_date - прибавиться + 1 год от начала подписки.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Создать подписку",
+                "parameters": [
+                    {
+                        "description": "Данные подписки",
+                        "name": "input",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/storage.SubscriptionCreateRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Успешное создание",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Ошибка валидации",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутрення ошибка сервера",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/update/{id}": {
+            "patch": {
+                "description": "Обновляет любые поля записи о подписке ID и User_ID",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Обновить подписку",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000",
+                        "description": "ID подписки",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Данные для обновления",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/storage.UpdateSubscriptionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Успешно обновлено\" example({\"status\": \"success\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Некорретный диапазон дат\" example({\"error\": \"invalid request\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера\" example({\"error\": \"internal error\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "storage.SubscriptionCreateRequest": {
+            "type": "object",
+            "required": [
+                "price",
+                "service_name",
+                "start_date"
+            ],
+            "properties": {
+                "end_date": {
+                    "type": "string",
+                    "example": "2026-07"
+                },
+                "price": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "example": 500
+                },
+                "service_name": {
+                    "type": "string",
+                    "example": "Netflix"
+                },
+                "start_date": {
+                    "type": "string",
+                    "example": "2025-07"
+                },
+                "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "550e8400-e29b-41d4-a716-446655240000"
+                }
+            }
+        },
+        "storage.SubscriptionR": {
+            "type": "object",
+            "properties": {
+                "end_date": {
+                    "type": "string",
+                    "example": "2026-07"
+                },
+                "id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "550e8400-e29b-41d4-a716-446655440090"
+                },
+                "price": {
+                    "type": "integer",
+                    "example": 500
+                },
+                "service_name": {
+                    "type": "string",
+                    "example": "Netflix"
+                },
+                "start_date": {
+                    "type": "string",
+                    "example": "2025-07"
+                },
+                "user_id": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "550e8400-e29b-41d4-a716-446655240000"
+                }
+            }
+        },
+        "storage.UpdateSubscriptionRequest": {
+            "type": "object",
+            "properties": {
+                "end_date": {
+                    "type": "string",
+                    "example": "2026-07"
+                },
+                "price": {
+                    "type": "integer",
+                    "example": 500
+                },
+                "service_name": {
+                    "type": "string",
+                    "example": "Netflix"
+                },
+                "start_date": {
+                    "type": "string",
+                    "example": "2025-07"
+                }
+            }
+        }
+    }
+}

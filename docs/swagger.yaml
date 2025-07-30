@@ -1,0 +1,264 @@
+basePath: /
+definitions:
+  storage.SubscriptionCreateRequest:
+    properties:
+      end_date:
+        example: 2026-07
+        type: string
+      price:
+        example: 500
+        minimum: 1
+        type: integer
+      service_name:
+        example: Netflix
+        type: string
+      start_date:
+        example: 2025-07
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655240000
+        format: uuid
+        type: string
+    required:
+    - price
+    - service_name
+    - start_date
+    type: object
+  storage.SubscriptionR:
+    properties:
+      end_date:
+        example: 2026-07
+        type: string
+      id:
+        example: 550e8400-e29b-41d4-a716-446655440090
+        format: uuid
+        type: string
+      price:
+        example: 500
+        type: integer
+      service_name:
+        example: Netflix
+        type: string
+      start_date:
+        example: 2025-07
+        type: string
+      user_id:
+        example: 550e8400-e29b-41d4-a716-446655240000
+        format: uuid
+        type: string
+    type: object
+  storage.UpdateSubscriptionRequest:
+    properties:
+      end_date:
+        example: 2026-07
+        type: string
+      price:
+        example: 500
+        type: integer
+      service_name:
+        example: Netflix
+        type: string
+      start_date:
+        example: 2025-07
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Api for managing subscriptions
+  title: Subscription service API
+  version: "1.0"
+paths:
+  /delete/{id}:
+    delete:
+      description: Удаляет подписку по ID и возвращает название удаленного сервиса
+      parameters:
+      - description: ID подписки
+        example: 550e8400-e29b-41d4-a716-446655440000
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешное удаление" example({"status":"Success","deleted service":"Netflix"})
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Неверный ID" example({"error":"failed to parse id","details":"invalid
+            UUID format"})
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: Подписка не найдена" example({"error":"subscription not found"})
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутренняя ошибка сервера" example({"error":"internal server
+            error"})
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Удалить подписку
+      tags:
+      - subscriptions
+  /get/{id}:
+    get:
+      description: Возвращает подписку в формате, готовом для API (с преобразованными
+        датами в необходимый формат)
+      parameters:
+      - description: ID подписки
+        example: 550e8400-e29b-41d4-a716-446655440000
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: Успешно получено
+          schema:
+            $ref: '#/definitions/storage.SubscriptionR'
+        "400":
+          description: 'Неверный UUID" example({"error": "failed to parse UUID"})'
+          schema:
+            additionalProperties: true
+            type: object
+        "404":
+          description: 'Подписка не найдена" example({"subscription": "not found"})'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'Внутренняя ошибка сервера" example({"error": "failed to get
+            subscription, internal error"})'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить подписку по ID
+      tags:
+      - subscriptions
+  /list:
+    get:
+      description: Возвращает список подписок с возможностью фильтрации по user_id
+        и названию сервиса. Если подписки не найдены, возвращает "not found".
+      parameters:
+      - description: ID пользователя для фильтрации
+        example: 550e8400-e29b-41d4-a716-446655440000
+        format: uuid
+        in: query
+        name: user_id
+        type: string
+      - description: Название сервиса для фильтрации
+        example: Netflix
+        in: query
+        name: service_name
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Если подписок нет" example({"subscriptions": "not found"})'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Неверный user_id" example({"error": "invalid user_id"})'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'Внутренняя ошибка сервера" example({"error": "internal server
+            error"})'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Получить список подписок
+      tags:
+      - subscriptions
+  /new:
+    post:
+      consumes:
+      - application/json
+      description: Добавляет новую подписку для пользователя. Поля user_id и end_date
+        опциональны, если не указать user_id - сгенерируется автоматически, если не
+        указать end_date - прибавиться + 1 год от начала подписки.
+      parameters:
+      - description: Данные подписки
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/storage.SubscriptionCreateRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Успешное создание
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Ошибка валидации
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: Внутрення ошибка сервера
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Создать подписку
+      tags:
+      - subscriptions
+  /update/{id}:
+    patch:
+      consumes:
+      - application/json
+      description: Обновляет любые поля записи о подписке ID и User_ID
+      parameters:
+      - description: ID подписки
+        example: 550e8400-e29b-41d4-a716-446655440000
+        format: uuid
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Данные для обновления
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/storage.UpdateSubscriptionRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: 'Успешно обновлено" example({"status": "success"})'
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: 'Некорретный диапазон дат" example({"error": "invalid request"})'
+          schema:
+            additionalProperties: true
+            type: object
+        "500":
+          description: 'Внутренняя ошибка сервера" example({"error": "internal error"})'
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Обновить подписку
+      tags:
+      - subscriptions
+schemes:
+- http
+swagger: "2.0"
