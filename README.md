@@ -1,4 +1,4 @@
-This is an simple API for managing subscriptions.
+This is an simple CRUDL API for managing subscriptions.
 
 Swagger documentation implemented => 
 
