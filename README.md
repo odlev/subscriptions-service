@@ -1,4 +1,4 @@
-Api for managing subscriptions.
+This is an simple API for managing subscriptions.
 
 Swagger documentation implemented => 
 
