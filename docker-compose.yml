@@ -9,19 +9,28 @@ services:
       - DB_USER=postgres
       - DB_PASSWORD=password
       - DB_NAME=subscriptions
+      - CONFIG_PATH=/app/config.yaml
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 
   postgres:
     image: postgres:17.5
     environment:
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: password
+      POSTGRES_PASSWORD: postgres
       POSTGRES_DB: subscriptions
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d subscriptions"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
     ports:
     - "5432:5432"
     volumes:
+      - ./postgres/initdb:/docker-entrypoint-initdb.d
       - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
 
 volumes:
   postgres_data:

@@ -27,9 +27,15 @@ func InitPostgres(log *slog.Logger, cfg config.Config) (*Storage, error) {
 		"postgres://%s:%s@%s:%d/%s?sslmode=%s",
 		cfg.User, cfg.Password, cfg.Host, cfg.Port, cfg.DBName, cfg.SSLMode)
 
-	db, err := pgxpool.New(context.Background(), dsn)
-	if err != nil {
-		return nil, fmt.Errorf("%s, %w", op, err)
+	var db *pgxpool.Pool
+	var err error
+
+	for range 5 {
+		db, err = pgxpool.New(context.Background(), dsn)
+		if err != nil {
+			return nil, fmt.Errorf("%s, %w", op, err)
+		}
+		time.Sleep(2 * time.Second)
 	}
 
 	if err := db.Ping(context.Background()); err != nil {
@@ -44,7 +50,8 @@ func InitPostgres(log *slog.Logger, cfg config.Config) (*Storage, error) {
 	user_id UUID NOT NULL DEFAULT uuid_generate_v4(),
 	start_date DATE NOT NULL,
 	end_date DATE,
-	updated_at TIMESTAMPTZ DEFAULT NOW());`)
+	updated_at TIMESTAMPTZ DEFAULT NOW());
+	CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`)
 	if err != nil {
 		return nil, fmt.Errorf("%s: error creating table: %w", op, err)
 	}

@@ -146,7 +146,7 @@ paths:
       summary: Получить подписку по ID
       tags:
       - subscriptions
-  /list:
+  /get/list:
     get:
       description: Возвращает список подписок с возможностью фильтрации по user_id
         и названию сервиса. Если подписки не найдены, возвращает "not found".

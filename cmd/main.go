@@ -14,7 +14,6 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/files" 
 )
-
 // @title           Subscription service API
 // @version         1.0
 // @description     Api for managing subscriptions
@@ -41,7 +40,7 @@ func main() {
 	router.GET("/get/:id", handlers.GetSubscription(log, db))
 	router.DELETE("/delete/:id", handlers.DeleteSubscription(log, db))
 	router.PATCH("/update/:id", handlers.UpdateSubscription(log, db))
-	router.GET("/list", handlers.GetListSubscriptions(log, db))
+	router.GET("/get/list", handlers.GetListSubscriptions(log, db))
 
 	srv := &http.Server{
 		Addr:         cfg.Address,

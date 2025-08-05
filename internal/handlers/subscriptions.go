@@ -228,7 +228,7 @@ func UpdateSubscription(log *slog.Logger, dataWizard DataWizard) gin.HandlerFunc
 // @Success 200 {object} map[string]interface{} "Если подписок нет" example({"subscriptions": "not found"})
 // @Failure 400 {object} map[string]interface{} "Неверный user_id" example({"error": "invalid user_id"})
 // @Failure 500 {object} map[string]interface{} "Внутренняя ошибка сервера" example({"error": "internal server error"})
-// @Router /list [get]
+// @Router /get/list [get]
 func GetListSubscriptions(log *slog.Logger, dataWizard DataWizard) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// const op = "handlers.subscriptions.GetAllSubscriptions"

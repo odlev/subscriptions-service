@@ -9,3 +9,4 @@ the service is launched via Docker Compose (App + PostgreSQL).
 
 If you want to run it locally, you need to edit the config file, install Postgres on your PC, and edit the .env file, where the path to the config is specified in the environment variable.
 
+TODO: добавить индексы в бд, добавить пагинацию в запросе на получение списка, добавить graceful shutdown

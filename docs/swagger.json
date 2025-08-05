@@ -65,6 +65,58 @@
                 }
             }
         },
+        "/get/list": {
+            "get": {
+                "description": "Возвращает список подписок с возможностью фильтрации по user_id и названию сервиса. Если подписки не найдены, возвращает \"not found\".",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "subscriptions"
+                ],
+                "summary": "Получить список подписок",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "format": "uuid",
+                        "example": "550e8400-e29b-41d4-a716-446655440000",
+                        "description": "ID пользователя для фильтрации",
+                        "name": "user_id",
+                        "in": "query"
+                    },
+                    {
+                        "type": "string",
+                        "example": "Netflix",
+                        "description": "Название сервиса для фильтрации",
+                        "name": "service_name",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Если подписок нет\" example({\"subscriptions\": \"not found\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "400": {
+                        "description": "Неверный user_id\" example({\"error\": \"invalid user_id\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "500": {
+                        "description": "Внутренняя ошибка сервера\" example({\"error\": \"internal server error\"})",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
         "/get/{id}": {
             "get": {
                 "description": "Возвращает подписку в формате, готовом для API (с преобразованными датами в необходимый формат)",
@@ -109,58 +161,6 @@
                     },
                     "500": {
                         "description": "Внутренняя ошибка сервера\" example({\"error\": \"failed to get subscription, internal error\"})",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    }
-                }
-            }
-        },
-        "/list": {
-            "get": {
-                "description": "Возвращает список подписок с возможностью фильтрации по user_id и названию сервиса. Если подписки не найдены, возвращает \"not found\".",
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "subscriptions"
-                ],
-                "summary": "Получить список подписок",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "format": "uuid",
-                        "example": "550e8400-e29b-41d4-a716-446655440000",
-                        "description": "ID пользователя для фильтрации",
-                        "name": "user_id",
-                        "in": "query"
-                    },
-                    {
-                        "type": "string",
-                        "example": "Netflix",
-                        "description": "Название сервиса для фильтрации",
-                        "name": "service_name",
-                        "in": "query"
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "Если подписок нет\" example({\"subscriptions\": \"not found\"})",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "400": {
-                        "description": "Неверный user_id\" example({\"error\": \"invalid user_id\"})",
-                        "schema": {
-                            "type": "object",
-                            "additionalProperties": true
-                        }
-                    },
-                    "500": {
-                        "description": "Внутренняя ошибка сервера\" example({\"error\": \"internal server error\"})",
                         "schema": {
                             "type": "object",
                             "additionalProperties": true
